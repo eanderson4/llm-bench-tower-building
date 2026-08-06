@@ -295,7 +295,7 @@ const tRows = agg.models
     return `<tr>
       <td class="rk">${i + 1}</td>
       <td class="mdl"><span class="chip" style="background:${colorFor(m.label)}"></span>${NAME[m.label] ?? m.label}</td>
-      <td class="tb"><div class="cellbar tbbar" style="width:${(m.headline / 9) * 100}%"></div><span><b>${m.headline.toFixed(2)} m</b></span></td>
+      <td class="tb"><div class="cellbar tbbar" style="width:${(m.headline / 9) * 100}%"></div><span><b>${m.headline.toFixed(2)} m</b> <em class="sdv">&plusmn;${m.sd.toFixed(1)}</em></span></td>
       ${cell(e.aa, 65, '', '', 0)}${cell(e.swe, 100, '')}${cell(e.arc, 100, '', e.arcNote ?? '')}
     </tr>`;
   })
@@ -318,6 +318,7 @@ writeFileSync(
       .cellbar { position: absolute; left: 6px; top: 16px; bottom: 16px; background: #232b34; border-radius: 5px; }
       .tbbar { background: rgba(242,193,78,0.28); border: 1px solid rgba(242,193,78,0.45); }
       .tb b { color: #f2c14e; }
+      .sdv { font-style: normal; font-size: 17px; color: #8a939d; }
       .na { color: #4e5760; }
       .fno { font-size: 17px; color: #6d7680; margin-top: 14px; }
     </style>
