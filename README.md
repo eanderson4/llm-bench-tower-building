@@ -1,8 +1,15 @@
 # llm-bench-tower-building
 
-<!-- TODO: hero video/gif — screen capture of the viewer replaying a top run
-     (e.g. fable-5 pillarsk2: 7.07m perfect build, or the 6.60m caught-mid-fall
-     leaning tower). Record once the headline runs are final. -->
+<table>
+  <tr>
+    <td width="50%"><img src="media/clean.gif" alt="Claude Fable 5 builds a clean 7.3m post-and-lintel tower" width="100%"></td>
+    <td width="50%"><img src="media/collapse.gif" alt="Claude Fable 5 reaches 7.9m, collapses on block 13, rebuilds to 4.0m" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><em>The same model, attempt 2: a clean 7.3m build.</em></td>
+    <td align="center"><em>Attempt 1: 7.9m — then block 13 brings it all down. It rebuilds to 4.0m from the rubble.</em></td>
+  </tr>
+</table>
 
 An LLM benchmark: build the tallest tower you can by placing blocks through a
 small SDK — under a position/velocity **uncertainty contract**. You can place a

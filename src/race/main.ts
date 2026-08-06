@@ -132,10 +132,31 @@ async function main(): Promise<void> {
   const params = new URLSearchParams(location.search);
   const paths = (params.get('replays')?.split(',') ?? DEFAULT_REPLAYS).map((s) => s.trim()).filter(Boolean);
   const labels = params.get('labels')?.split(',').map((s) => s.trim());
-  if (paths.length < 2) throw new Error('need at least 2 replays: ?replays=/replays/a.json,/replays/b.json');
+  if (paths.length < 1) throw new Error('need replays: ?replays=/replays/a.json,/replays/b.json');
 
   const panes = await Promise.all(paths.map((p, i) => buildPane(p, labels?.[i] ?? labelFromPath(p))));
   const maxFrames = Math.max(...panes.map((p) => p.data.frames.length));
+  const best = Math.max(...panes.map((p) => p.data.replay.score.height));
+
+  // Capture mode (?capture=1): no animation loop — an external driver (see
+  // scripts/capture.ts) steps frames via window.__race and screenshots each.
+  if (params.has('capture')) {
+    document.getElementById('controls')!.style.display = 'none';
+    const onResizeCapture = (): void => panes.forEach(resizePane);
+    window.addEventListener('resize', onResizeCapture);
+    onResizeCapture();
+    (window as unknown as Record<string, unknown>).__race = {
+      maxFrames,
+      goto: (i: number): void => {
+        for (const pane of panes) {
+          if (i >= maxFrames - 1) pane.rootEl.classList.toggle('winner', pane.data.replay.score.height === best);
+          applyFrame(pane, i);
+          pane.renderer.render(pane.scene, pane.camera);
+        }
+      },
+    };
+    return;
+  }
 
   let frameIndex = 0;
   let playing = true;
@@ -164,7 +185,6 @@ async function main(): Promise<void> {
   window.addEventListener('resize', onResize);
   onResize();
 
-  const best = Math.max(...panes.map((p) => p.data.replay.score.height));
   const tick = (): void => {
     if (playing) {
       carry += speed;
