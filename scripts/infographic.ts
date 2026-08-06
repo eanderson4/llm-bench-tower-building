@@ -313,7 +313,7 @@ writeFileSync(
            vertical-align: middle; }
       td span { position: relative; }
       .rk { width: 44px; color: #5c656f; font-size: 19px; }
-      .mdl { width: 250px; font-weight: 700; }
+      .mdl { width: 268px; font-weight: 700; font-size: 21px; white-space: nowrap; }
       .chip { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 10px; }
       .cellbar { position: absolute; left: 6px; top: 16px; bottom: 16px; background: #232b34; border-radius: 5px; }
       .tbbar { background: rgba(242,193,78,0.28); border: 1px solid rgba(242,193,78,0.45); }
