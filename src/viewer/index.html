@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tower replay viewer</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #101418; font-family: ui-monospace, monospace; }
+      #app { position: fixed; inset: 0; }
+      .panel {
+        position: fixed; z-index: 10; color: #dfe6ee; background: rgba(16, 20, 24, 0.82);
+        padding: 10px 12px; border-radius: 8px; font-size: 13px; line-height: 1.5;
+      }
+      #info { top: 12px; left: 12px; white-space: pre; }
+      #controls { bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; align-items: center; }
+      #scrub { width: min(60vw, 560px); }
+      button, select { background: #232a33; color: #dfe6ee; border: 1px solid #3a4450; border-radius: 6px; padding: 4px 10px; font: inherit; cursor: pointer; }
+      #error { top: 12px; right: 12px; color: #ff9c9c; display: none; max-width: 40vw; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="info" class="panel">loading…</div>
+    <div id="error" class="panel"></div>
+    <div id="controls" class="panel">
+      <button id="play">pause</button>
+      <input id="scrub" type="range" min="0" max="0" value="0" step="1" />
+      <select id="speed">
+        <option value="0.25">0.25×</option>
+        <option value="0.5">0.5×</option>
+        <option value="1" selected>1×</option>
+        <option value="2">2×</option>
+        <option value="4">4×</option>
+      </select>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
