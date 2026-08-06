@@ -271,4 +271,73 @@ writeFileSync(
      <div class="footer"><div class="repo">${REPO}</div><div class="lic">main-1 &middot; MIT</div></div>`,
   ),
 );
+// ---- #4 comparison table: TowerBench vs established benchmarks ----------
+const EXT: Record<string, { aa: number | null; swe: number | null; arc: number | null; arcNote?: string }> = {
+  'claude-opus-5': { aa: 61, swe: 96.0, arc: 90.4 },
+  'claude-sonnet-5': { aa: 53, swe: 82.1, arc: null },
+  'claude-fable-5': { aa: 60, swe: 95.0, arc: 89.2, arcNote: '\u00b9' },
+  'gpt-5.5': { aa: 55, swe: 88.7, arc: 85.0, arcNote: '\u00b9' },
+  'deepseek-v4-flash': { aa: 50, swe: 79.0, arc: null },
+  'gpt-5.6-sol': { aa: 59, swe: 96.2, arc: 92.5, arcNote: '\u00b9' },
+  'glm-5.2': { aa: 51, swe: null, arc: 22.8 },
+  k3: { aa: 57, swe: 93.4, arc: 60.4 },
+  'claude-haiku-4-5-20251001': { aa: 30, swe: 73.3, arc: 37.7, arcNote: '\u00b9' },
+  'gpt-5.4-mini': { aa: 40, swe: 73.0, arc: 18.9, arcNote: '\u00b9' },
+};
+const cell = (v: number | null, max: number, unit: string, note = '', dp = 1): string => {
+  if (v === null) return `<td class="na">\u2014</td>`;
+  const w = Math.max(3, (v / max) * 100);
+  return `<td><div class="cellbar" style="width:${w}%"></div><span>${v.toFixed(dp)}${unit}${note}</span></td>`;
+};
+const tRows = agg.models
+  .map((m, i) => {
+    const e = EXT[m.label] ?? { aa: null, swe: null, arc: null };
+    return `<tr>
+      <td class="rk">${i + 1}</td>
+      <td class="mdl"><span class="chip" style="background:${colorFor(m.label)}"></span>${NAME[m.label] ?? m.label}</td>
+      <td class="tb"><div class="cellbar tbbar" style="width:${(m.headline / 9) * 100}%"></div><span><b>${m.headline.toFixed(2)} m</b></span></td>
+      ${cell(e.aa, 65, '', '', 0)}${cell(e.swe, 100, '')}${cell(e.arc, 100, '', e.arcNote ?? '')}
+    </tr>`;
+  })
+  .join('');
+writeFileSync(
+  join(outdir, 'compare.html'),
+  shell(
+    'TowerBench vs other benchmarks',
+    `<style>
+      table { border-collapse: collapse; width: 100%; margin-top: 34px; }
+      th { text-align: left; font-size: 19px; color: #8a939d; font-weight: 400; padding: 0 14px 12px;
+           border-bottom: 1px solid #2a2f36; }
+      th.col1 { color: #f2c14e; font-weight: 700; }
+      td { position: relative; padding: 0 14px; height: 74px; font-size: 22px; border-bottom: 1px solid #1a1f26;
+           vertical-align: middle; }
+      td span { position: relative; }
+      .rk { width: 44px; color: #5c656f; font-size: 19px; }
+      .mdl { width: 250px; font-weight: 700; }
+      .chip { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 10px; }
+      .cellbar { position: absolute; left: 6px; top: 16px; bottom: 16px; background: #232b34; border-radius: 5px; }
+      .tbbar { background: rgba(242,193,78,0.28); border: 1px solid rgba(242,193,78,0.45); }
+      .tb b { color: #f2c14e; }
+      .na { color: #4e5760; }
+      .fno { font-size: 17px; color: #6d7680; margin-top: 14px; }
+    </style>
+     <h1>Strong coders, bad builders.</h1>
+     <div class="sub">TowerBench (final standing tower height) next to the usual leaderboards.
+     If tower building were just coding or abstract reasoning in disguise, the columns would agree.
+     They don't.</div>
+     <table>
+       <tr><th></th><th>model</th><th class="col1">TowerBench main-1</th>
+         <th>AA Intelligence Index</th><th>SWE-bench Verified %</th><th>ARC-AGI-2 %</th></tr>
+       ${tRows}
+     </table>
+     <div class="fno">\u00b9 public-eval / aggregator figure, not ARC's semi-private set. \u2014 = no credible
+     published number. External scores: vendor / Artificial Analysis / vals.ai / arcprize.org, Aug 2026,
+     mixed reasoning configs \u2014 for eyeballing correlations only.</div>
+     <div class="note"><b>GPT-5.6 Sol</b>: #1 column on SWE-bench, #6 tower. <b>Kimi K3</b>: 93 on SWE-bench,
+     8th tower. Meanwhile <b>Claude Sonnet 5</b> out-builds models that out-score it everywhere else.
+     Building under uncertainty is its own skill.</div>
+     <div class="footer"><div class="repo">${REPO}</div><div class="lic">main-1 &middot; MIT</div></div>`,
+  ),
+);
+
 console.log(`wrote ${outdir}/{leaderboard,peakfinal,learning}.html`);
