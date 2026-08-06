@@ -170,51 +170,6 @@ writeFileSync(
   ),
 );
 
-// ---- #1b leaderboard variant: every attempt as a shape (o=1, tri=2, star=3)
-const shapeFor = (ai: number, x: string): string => {
-  if (ai === 0)
-    return `<svg class="mk" style="left:${x}" width="15" height="15" viewBox="0 0 15 15">
-      <circle cx="7.5" cy="7.5" r="5" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2"/></svg>`;
-  if (ai === 1)
-    return `<svg class="mk" style="left:${x}" width="15" height="15" viewBox="0 0 15 15">
-      <polygon points="7.5,1.5 14,13 1,13" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2"/></svg>`;
-  return `<svg class="mk" style="left:${x}" width="17" height="17" viewBox="0 0 17 17">
-      <path d="M8.5 0.8 L10.6 5.9 L16.2 6.3 L11.9 9.9 L13.3 15.4 L8.5 12.4 L3.7 15.4 L5.1 9.9 L0.8 6.3 L6.4 5.9 Z"
-        fill="#f2c14e"/></svg>`;
-};
-const rows1b = agg.models
-  .map((m) => {
-    const marks = m.seeds
-      .flatMap((s) => (s.heights ?? []).map((h, ai) => shapeFor(ai, pct(h))))
-      .join('');
-    return `<div class="row"><div class="name">${NAME[m.label] ?? m.label}</div><div class="track">
-      <div class="bar" style="width:${pct(m.headline)};background:${colorFor(m.label)}"></div>${marks}
-    </div><div class="valcell">${m.headline.toFixed(2)}</div></div>`;
-  })
-  .join('');
-writeFileSync(
-  join(outdir, 'leaderboard-attempts.html'),
-  shell(
-    'Leaderboard (all attempts)',
-    `<style>.mk { position: absolute; top: 50%; transform: translate(-50%,-50%); }</style>
-     <h1>Which LLM builds the tallest tower?</h1>
-     <div class="sub">Every attempt of the run — 15 per model (5 seeds &times; 3 attempts).
-     Bar = mean over seeds of the best attempt. Score is final standing height, physics simulated,
-     placements land with position/velocity noise.</div>
-     <div class="legend" style="margin-top:18px">
-       <span><svg width="15" height="15" viewBox="0 0 15 15" style="vertical-align:-2px"><circle cx="7.5" cy="7.5" r="5" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2"/></svg> attempt 1</span>
-       <span><svg width="15" height="15" viewBox="0 0 15 15" style="vertical-align:-2px"><polygon points="7.5,1.5 14,13 1,13" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2"/></svg> attempt 2</span>
-       <span><svg width="17" height="17" viewBox="0 0 17 17" style="vertical-align:-3px"><path d="M8.5 0.8 L10.6 5.9 L16.2 6.3 L11.9 9.9 L13.3 15.4 L8.5 12.4 L3.7 15.4 L5.1 9.9 L0.8 6.3 L6.4 5.9 Z" fill="#f2c14e"/></svg> attempt 3</span>
-     </div>
-     <div class="main"><div class="chartcol"><div class="chart">
-       <div class="grid">${gridLines}</div><div class="rows">${rows1b}</div></div>
-     <div class="note">Gold stars drifting right of their circles = learning across attempts.
-     <b>Claude Opus 5</b>'s stars lead its circles by 2m; <b>Claude Sonnet 5</b>'s do the opposite.</div>
-     </div>${towerCol}</div>
-     <div class="footer"><div class="repo">${REPO}</div><div class="lic">main-1 &middot; MIT</div></div>`,
-  ),
-);
-
 // ---- #2 peak vs final ---------------------------------------------------
 const rows2 = agg.models
   .map((m) => {

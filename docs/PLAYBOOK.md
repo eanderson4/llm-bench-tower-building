@@ -56,7 +56,7 @@ OUT=/tmp/towerbench-info && mkdir -p $OUT
 npx tsx scripts/final-frame.ts "http://localhost:5173/src/race/?capture=1&replays=/replays/<file>.json&labels=<Name>" $OUT/tower-x.png 560 640
 # infographics (towers arg: "path|caption;path|caption;...")
 npx tsx scripts/infographic.ts --group main-1 --outdir $OUT --towers "..."
-for p in leaderboard leaderboard-attempts peakfinal learning; do
+for p in leaderboard peakfinal learning; do
   npx tsx scripts/shot.ts --url file://$OUT/$p.html --out media/infographic-$p.png
 done
 ```
