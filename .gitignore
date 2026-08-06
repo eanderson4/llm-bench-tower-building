@@ -2,3 +2,4 @@ node_modules/
 dist/
 replays/*.json
 logs/
+media/videos/
