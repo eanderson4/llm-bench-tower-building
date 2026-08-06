@@ -21,6 +21,13 @@ const BASE = {
 
 const BRICKS_INVENTORY = items('b', repeat(BRICK, 20));
 
+const PILLARS_INVENTORY = (pillars = 8, lintels = 6, cubes = 4) =>
+  items('p', [
+    ...repeat({ shape: { kind: 'box', size: [0.3, 1.2, 0.3] }, material: WOOD }, pillars),
+    ...repeat({ shape: { kind: 'box', size: [1.2, 0.15, 0.4] }, material: WOOD }, lintels),
+    ...repeat({ shape: { kind: 'box', size: [0.35, 0.35, 0.35] }, material: WOOD }, cubes),
+  ]);
+
 export const CHALLENGES: Record<string, ChallengeDef> = {
   bricks: {
     ...BASE,
@@ -95,11 +102,23 @@ export const CHALLENGES: Record<string, ChallengeDef> = {
     id: 'pillars',
     name: 'Pillars',
     description: 'Tall 1.2m columns plus lintel slabs and cubes — post-and-lintel architecture on a small footprint.',
-    inventory: items('p', [
-      ...repeat({ shape: { kind: 'box', size: [0.3, 1.2, 0.3] }, material: WOOD }, 8),
-      ...repeat({ shape: { kind: 'box', size: [1.2, 0.15, 0.4] }, material: WOOD }, 6),
-      ...repeat({ shape: { kind: 'box', size: [0.35, 0.35, 0.35] }, material: WOOD }, 4),
-    ]),
+    inventory: PILLARS_INVENTORY(),
+  },
+  pillarsk2: {
+    ...BASE,
+    id: 'pillarsk2',
+    name: 'Pillars · K/2',
+    description: 'Same post-and-lintel inventory as pillars, but the uncertainty constant K is ~2x smaller (sigmaX0=0.015, sigmaV0=0.2). Less collapse lottery, more architecture.',
+    noise: { sigmaX0: 0.015, sigmaV0: 0.2 },
+    inventory: PILLARS_INVENTORY(),
+  },
+  pillarsxl: {
+    ...BASE,
+    id: 'pillarsxl',
+    name: 'Pillars XL · K/2',
+    description: 'Post-and-lintel at scale: 14 columns, 10 lintels, 6 cubes (30 blocks) at K/2 precision (sigmaX0=0.015, sigmaV0=0.2). Enough material that a perfect build is statistically out of reach — the score measures how far you get, not whether you finish.',
+    noise: { sigmaX0: 0.015, sigmaV0: 0.2 },
+    inventory: PILLARS_INVENTORY(14, 10, 6),
   },
   slick: {
     ...BASE,

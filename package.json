@@ -2,6 +2,7 @@
   "name": "llm-bench-tower-building",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "description": "LLM benchmark: build a tower by placing blocks under position/velocity placement uncertainty",
   "scripts": {

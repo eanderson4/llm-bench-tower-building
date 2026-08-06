@@ -1,5 +1,9 @@
 # llm-bench-tower-building
 
+<!-- TODO: hero video/gif — screen capture of the viewer replaying a top run
+     (e.g. fable-5 pillarsk2: 7.07m perfect build, or the 6.60m caught-mid-fall
+     leaning tower). Record once the headline runs are final. -->
+
 An LLM benchmark: build the tallest tower you can by placing blocks through a
 small SDK — under a position/velocity **uncertainty contract**. You can place a
 block precisely, or control its velocity precisely, but not both:
@@ -121,3 +125,11 @@ replay viewer, LLM harness (episodic + session modes), leaderboard board. Full
 model × challenge coverage matrix lives in `replays/` (group `cov-1`); known
 tuning knobs (settle thresholds, per-challenge K) are listed as open decisions
 in the project plan.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+---
+
+A [math vs vibes](https://mathvsvibes.com) project.
