@@ -100,10 +100,20 @@ const models = [...labels]
       return xs.length ? r2(mean(xs)) : null;
     });
     const withTokens = seeds.filter((s) => s.tokens);
+    const bests = seeds.map((s) => s.best);
+    const sd =
+      bests.length > 1
+        ? Math.sqrt(bests.reduce((a, b) => a + (b - mean(bests)) ** 2, 0) / (bests.length - 1))
+        : 0;
     return {
       label,
-      seeds: seeds.map((s) => ({ seed: s.seed, best: r2(s.best) })),
+      seeds: seeds.map((s) => ({
+        seed: s.seed,
+        best: r2(s.best),
+        heights: [...s.attempts].sort((a, b) => a.attempt - b.attempt).map((a) => r2(a.height)),
+      })),
       headline: r2(mean(seeds.map((s) => s.best))),
+      sd: r2(sd),
       tallest: r2(Math.max(...all.map((a) => a.height))),
       meanFinal: r2(mean(all.map((a) => a.height))),
       meanPeak: r2(mean(all.map((a) => a.peak))),
