@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tower race</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #101418; font-family: ui-monospace, monospace; }
+      #race { position: fixed; inset: 0; display: flex; }
+      .pane { flex: 1; position: relative; border-right: 1px solid #232a33; }
+      .pane:last-child { border-right: none; }
+      .pane .head {
+        position: absolute; top: 0; left: 0; right: 0; z-index: 5; text-align: center;
+        padding: 10px 6px 14px; pointer-events: none;
+        background: linear-gradient(rgba(16, 20, 24, 0.9), rgba(16, 20, 24, 0));
+      }
+      .pane .label { color: #dfe6ee; font-size: clamp(13px, 1.6vw, 20px); font-weight: bold; }
+      .pane .height { color: #7fd6a4; font-size: clamp(22px, 3.2vw, 44px); font-weight: bold; font-variant-numeric: tabular-nums; }
+      .pane .status { color: #8fa0b2; font-size: clamp(10px, 1.1vw, 14px); min-height: 1.2em; }
+      .pane.winner .height { color: #ffd166; }
+      .pane.done .status { color: #dfe6ee; }
+      #controls {
+        position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 10;
+        display: flex; gap: 10px; align-items: center; color: #dfe6ee;
+        background: rgba(16, 20, 24, 0.82); padding: 10px 12px; border-radius: 8px; font-size: 13px;
+      }
+      button, select { background: #232a33; color: #dfe6ee; border: 1px solid #3a4450; border-radius: 6px; padding: 4px 10px; font: inherit; cursor: pointer; }
+      #error {
+        position: fixed; top: 12px; right: 12px; z-index: 10; color: #ff9c9c; display: none;
+        background: rgba(16, 20, 24, 0.82); padding: 10px 12px; border-radius: 8px;
+        max-width: 40vw; white-space: pre-wrap; font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="race"></div>
+    <div id="error"></div>
+    <div id="controls">
+      <button id="play">pause</button>
+      <button id="restart">restart</button>
+      <select id="speed">
+        <option value="0.5">0.5×</option>
+        <option value="1" selected>1×</option>
+        <option value="2">2×</option>
+        <option value="4">4×</option>
+      </select>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
