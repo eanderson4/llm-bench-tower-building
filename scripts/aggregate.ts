@@ -21,6 +21,7 @@ interface RunFile {
   runId: string;
   group?: string;
   mode: string;
+  notebook?: { notes?: string }[];
   attempts: {
     attempt: number;
     seed: number;
@@ -50,6 +51,7 @@ interface SeedResult {
   best: number;
   attempts: { attempt: number; height: number; peak: number; blocksUsed: number; endReason: string }[];
   tokens: { output: number; turns: number } | null;
+  notes: { entries: number; chars: number };
 }
 
 const bySeedKey = new Map<string, SeedResult>(); // label\0seed -> latest run wins
@@ -85,6 +87,10 @@ for (const f of readdirSync(dir).filter((f) => f.startsWith('run-') && f.endsWit
       endReason: a.endReason,
     })),
     tokens,
+    notes: {
+      entries: (run.notebook ?? []).length,
+      chars: (run.notebook ?? []).reduce((a, e) => a + (e.notes?.length ?? 0), 0),
+    },
   });
 }
 
@@ -122,6 +128,8 @@ const models = [...labels]
       attempts: all.length,
       outputTokens: withTokens.length ? withTokens.reduce((a, s) => a + s.tokens!.output, 0) : null,
       turns: withTokens.length ? withTokens.reduce((a, s) => a + s.tokens!.turns, 0) : null,
+      noteEntries: seeds.reduce((a, s) => a + s.notes.entries, 0),
+      noteChars: seeds.reduce((a, s) => a + s.notes.chars, 0),
     };
   })
   .sort((a, b) => b.headline - a.headline);
