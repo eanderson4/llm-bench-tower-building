@@ -150,7 +150,7 @@ const rows1 = agg.models
   })
   .join('');
 const towerCol = towers.length
-  ? `<div class="towercol"><div class="towerhead">Three ways to build</div>${towers
+  ? `<div class="towercol"><div class="towerhead">Example builds</div>${towers
       .map((t) => `<div><img src="${t.path}"><div class="towercap">${t.cap}</div></div>`)
       .join('')}</div>`
   : '';
