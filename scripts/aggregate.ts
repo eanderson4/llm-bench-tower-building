@@ -138,14 +138,15 @@ const out = { group, challenge: challenge || models[0] ? undefined : undefined, 
 writeFileSync(join(dir, `agg-${group}.json`), JSON.stringify(out, null, 2));
 
 console.log(`# ${group} leaderboard\n`);
-console.log('| # | model | height (m)* | tallest | attempt 1→2→3 (mean) | peak→final gap | output tokens |');
-console.log('|---|-------|------------|---------|----------------------|----------------|---------------|');
+console.log('| # | model | height (m)* | tallest | attempt 1→2→3 (mean) | peak→final gap | output tokens | m / 100k tok |');
+console.log('|---|-------|------------|---------|----------------------|----------------|---------------|--------------|');
 models.forEach((m, i) => {
   const curve = m.attemptMeans.map((x) => (x === null ? '—' : x.toFixed(2))).join(' → ');
   const gap = (m.meanPeak - m.meanFinal).toFixed(2);
   const tok = m.outputTokens === null ? '—' : `${Math.round(m.outputTokens / 1000)}k`;
+  const eff = m.outputTokens === null ? '—' : (m.headline / (m.outputTokens / 100_000)).toFixed(1);
   console.log(
-    `| ${i + 1} | ${m.label} | **${m.headline.toFixed(2)}** | ${m.tallest.toFixed(2)} | ${curve} | ${gap} | ${tok} |`,
+    `| ${i + 1} | ${m.label} | **${m.headline.toFixed(2)}** | ${m.tallest.toFixed(2)} | ${curve} | ${gap} | ${tok} | ${eff} |`,
   );
 });
 console.log(`\n\\* mean over ${models[0]?.seeds.length ?? '?'} seeds of the best of 3 attempts (final standing height).`);
