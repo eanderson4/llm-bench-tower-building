@@ -119,3 +119,17 @@ export interface ReplayFile {
   placements: ReplayPlacement[];
   score: Score;
 }
+
+/**
+ * Protocol metadata for a benchmark generation. aggregate.ts derives it from
+ * the run files and embeds it in agg-<group>.json so downstream tooling
+ * (infographics, board) reads protocol facts from the data instead of
+ * hardcoding them per generation.
+ */
+export interface BenchMeta {
+  group: string; // generation tag, e.g. "main-1" / "main-increased-attempts"
+  challengeId: string;
+  seeds: number[]; // distinct seed values, sorted
+  attemptsPerSeed: number; // attempts in a complete run of this generation
+  mode: string; // harness mode ("episodic" | "session")
+}

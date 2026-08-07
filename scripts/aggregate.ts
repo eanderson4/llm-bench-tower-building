@@ -13,6 +13,7 @@
  */
 import { readFileSync, readdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import type { BenchMeta } from '../src/core/types';
 
 interface RunFile {
   label: string;
@@ -73,10 +74,20 @@ function countCapHits(run: RunFile): number {
 const bySeedKey = new Map<string, SeedResult>(); // label\0seed -> latest run wins
 const labels = new Set<string>();
 
+// Generation metadata, derived from the run files (never hardcoded downstream).
+const metaChallenges = new Set<string>();
+const metaSeeds = new Set<number>();
+const metaModes = new Set<string>();
+let metaAttempts = 0;
+
 for (const f of readdirSync(dir).filter((f) => f.startsWith('run-') && f.endsWith('.json'))) {
   const run = JSON.parse(readFileSync(join(dir, f), 'utf8')) as RunFile;
   if (run.group !== group) continue;
   if (challenge && run.challengeId !== challenge) continue;
+  metaChallenges.add(run.challengeId);
+  metaSeeds.add(run.seeds[0]!);
+  metaModes.add(run.mode);
+  metaAttempts = Math.max(metaAttempts, run.attempts.length);
   const seed = run.seeds[0];
   let tokens: SeedResult['tokens'] = null;
   try {
@@ -154,7 +165,17 @@ const models = [...labels]
   })
   .sort((a, b) => b.headline - a.headline);
 
-const out = { group, challenge: challenge || models[0] ? undefined : undefined, generated: 'aggregate.ts', models };
+const meta: BenchMeta = {
+  group,
+  challengeId: challenge || [...metaChallenges][0] || '',
+  seeds: [...metaSeeds].sort((a, b) => a - b),
+  attemptsPerSeed: metaAttempts,
+  mode: [...metaModes][0] ?? '',
+};
+if (metaChallenges.size > 1 || metaModes.size > 1) {
+  console.warn(`warning: mixed challenges/modes in group "${group}" — meta describes the first only`);
+}
+const out = { meta, generated: 'aggregate.ts', models };
 writeFileSync(join(dir, `agg-${group}.json`), JSON.stringify(out, null, 2));
 
 console.log(`# ${group} leaderboard\n`);
@@ -175,7 +196,7 @@ models.forEach((m, i) => {
     `| ${i + 1} | ${m.label}${m.capHits > 0 ? ' †' : ''} | **${m.headline.toFixed(2)}** | ${m.tallest.toFixed(2)} | ${curve} | ${gap} | ${tok} | ${eff} |`,
   );
 });
-const nAttempts = Math.max(...models.map((m) => m.attemptsPerSeed), 0);
+const nAttempts = meta.attemptsPerSeed || Math.max(...models.map((m) => m.attemptsPerSeed), 0);
 console.log(`\n\\* mean over ${models[0]?.seeds.length ?? '?'} seeds of the best of ${nAttempts} attempts (final standing height).`);
 const flagged = models.filter((m) => m.capHits > 0);
 if (flagged.length > 0) {
