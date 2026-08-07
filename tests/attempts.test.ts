@@ -29,6 +29,8 @@ describe('parseSeeds', () => {
   it('parses lists and NxS specs', () => {
     expect(parseSeeds('11,12,13')).toEqual([11, 12, 13]);
     expect(parseSeeds('3x11')).toEqual([11, 11, 11]);
+    expect(parseSeeds('20x11')).toHaveLength(20);
+    expect(parseSeeds('20x11').every((s) => s === 11)).toBe(true);
   });
   it('rejects garbage', () => {
     expect(() => parseSeeds('abc')).toThrow(/bad --seeds/);

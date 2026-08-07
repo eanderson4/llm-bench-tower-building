@@ -101,7 +101,8 @@ const models = [...labels]
       .map(([, v]) => v)
       .sort((a, b) => a.seed - b.seed);
     const all = seeds.flatMap((s) => s.attempts);
-    const byAttempt = [1, 2, 3].map((n) => {
+    const attemptNums = [...new Set(all.map((a) => a.attempt))].sort((a, b) => a - b);
+    const byAttempt = attemptNums.map((n) => {
       const xs = all.filter((a) => a.attempt === n).map((a) => a.height);
       return xs.length ? r2(mean(xs)) : null;
     });
@@ -124,6 +125,7 @@ const models = [...labels]
       meanFinal: r2(mean(all.map((a) => a.height))),
       meanPeak: r2(mean(all.map((a) => a.peak))),
       attemptMeans: byAttempt,
+      attemptsPerSeed: attemptNums.length,
       abandoned: all.filter((a) => a.endReason === 'abandoned').length,
       attempts: all.length,
       outputTokens: withTokens.length ? withTokens.reduce((a, s) => a + s.tokens!.output, 0) : null,
@@ -138,10 +140,16 @@ const out = { group, challenge: challenge || models[0] ? undefined : undefined, 
 writeFileSync(join(dir, `agg-${group}.json`), JSON.stringify(out, null, 2));
 
 console.log(`# ${group} leaderboard\n`);
-console.log('| # | model | height (m)* | tallest | attempt 1→2→3 (mean) | peak→final gap | output tokens | m / 100k tok |');
+console.log('| # | model | height (m)* | tallest | attempt means (mean height) | peak→final gap | output tokens | m / 100k tok |');
 console.log('|---|-------|------------|---------|----------------------|----------------|---------------|--------------|');
+// Long curves (e.g. 20-attempt generations) are compressed to first 3 … last 2.
+const fmtCurve = (xs: (number | null)[]): string => {
+  const fmt = (x: number | null): string => (x === null ? '—' : x.toFixed(2));
+  if (xs.length <= 6) return xs.map(fmt).join(' → ');
+  return [...xs.slice(0, 3).map(fmt), '…', ...xs.slice(-2).map(fmt)].join(' → ');
+};
 models.forEach((m, i) => {
-  const curve = m.attemptMeans.map((x) => (x === null ? '—' : x.toFixed(2))).join(' → ');
+  const curve = fmtCurve(m.attemptMeans);
   const gap = (m.meanPeak - m.meanFinal).toFixed(2);
   const tok = m.outputTokens === null ? '—' : `${Math.round(m.outputTokens / 1000)}k`;
   const eff = m.outputTokens === null ? '—' : (m.headline / (m.outputTokens / 100_000)).toFixed(1);
@@ -149,5 +157,6 @@ models.forEach((m, i) => {
     `| ${i + 1} | ${m.label} | **${m.headline.toFixed(2)}** | ${m.tallest.toFixed(2)} | ${curve} | ${gap} | ${tok} | ${eff} |`,
   );
 });
-console.log(`\n\\* mean over ${models[0]?.seeds.length ?? '?'} seeds of the best of 3 attempts (final standing height).`);
+const nAttempts = Math.max(...models.map((m) => m.attemptsPerSeed), 0);
+console.log(`\n\\* mean over ${models[0]?.seeds.length ?? '?'} seeds of the best of ${nAttempts} attempts (final standing height).`);
 console.log(`\nwrote ${join(dir, `agg-${group}.json`)}`);

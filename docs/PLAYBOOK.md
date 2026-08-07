@@ -77,7 +77,33 @@ that script's header. Model display names/colors live in
 
 ## Protocol changes are a new generation
 
-Anything that touches the system prompt, SDK docs, challenge, scoring, or
-noise contract invalidates comparability — that's a `main-2`, run fresh for
-every model, and the old table stays published as v1 history (see issues
-labeled `v2`).
+Anything that touches the system prompt, SDK docs, challenge, scoring, attempt
+count, or noise contract invalidates comparability — that's a new generation,
+run fresh for every model, and the old table stays published as history (see
+issues labeled `v2`).
+
+## Generation `main-increased-attempts` (planned)
+
+Same as `main-1` (challenge `pillarsxl`, seeds `11–15`, `--mode episodic`)
+except **20 attempts per seed** instead of 3 — group `main-increased-attempts`.
+Motivation: issue #5 (the notebook's value is hard to read off 3 attempts) and
+the main-1 review feedback that best-of-3 makes the top of the table a coin
+flip; more attempts give the learning curve room to separate models.
+
+```sh
+ATTEMPTS=20 GROUP=main-increased-attempts bash scripts/main-run.sh
+# or one model solo:
+npm run bench -- --model <model> --challenge pillarsxl --seeds 20x11 --group main-increased-attempts
+```
+
+Notes:
+
+- `--max-turns` now defaults to 40 per attempt (800 for 20 attempts), so no
+  flag is needed; pass it explicitly to override.
+- Scores are **not** comparable to `main-1`: best-of-20 has a higher expected
+  max than best-of-3 even with zero learning. Publish the two tables
+  separately.
+- Cost is ~7x main-1 per model-seed. Consider trimming the model list or
+  running the cheap models first to validate the pipeline end to end.
+- `scripts/aggregate.ts` derives the attempt count from the run files and
+  compresses long learning curves in the printed table.
