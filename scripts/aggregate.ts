@@ -28,6 +28,7 @@ interface RunFile {
     score: { height: number; peakHeight: number; blocksUsed: number };
     placements: number;
     endReason: string;
+    replayPath: string;
   }[];
 }
 
@@ -52,6 +53,21 @@ interface SeedResult {
   attempts: { attempt: number; height: number; peak: number; blocksUsed: number; endReason: string }[];
   tokens: { output: number; turns: number } | null;
   notes: { entries: number; chars: number };
+  capHits: number; // placements whose settle hit the time cap (world still moving)
+}
+
+/** Count settleCapHit flags across a run's attempt replays (0 if unreadable or pre-v2). */
+function countCapHits(run: RunFile): number {
+  let hits = 0;
+  for (const a of run.attempts) {
+    try {
+      const replay = JSON.parse(readFileSync(a.replayPath, 'utf8')) as { placements?: { settleCapHit?: boolean }[] };
+      hits += (replay.placements ?? []).filter((p) => p.settleCapHit).length;
+    } catch {
+      /* replay missing: cap-hit stats omitted */
+    }
+  }
+  return hits;
 }
 
 const bySeedKey = new Map<string, SeedResult>(); // label\0seed -> latest run wins
@@ -87,6 +103,7 @@ for (const f of readdirSync(dir).filter((f) => f.startsWith('run-') && f.endsWit
       endReason: a.endReason,
     })),
     tokens,
+    capHits: countCapHits(run),
     notes: {
       entries: (run.notebook ?? []).length,
       chars: (run.notebook ?? []).reduce((a, e) => a + (e.notes?.length ?? 0), 0),
@@ -132,6 +149,7 @@ const models = [...labels]
       turns: withTokens.length ? withTokens.reduce((a, s) => a + s.tokens!.turns, 0) : null,
       noteEntries: seeds.reduce((a, s) => a + s.notes.entries, 0),
       noteChars: seeds.reduce((a, s) => a + s.notes.chars, 0),
+      capHits: seeds.reduce((a, s) => a + s.capHits, 0),
     };
   })
   .sort((a, b) => b.headline - a.headline);
@@ -154,9 +172,16 @@ models.forEach((m, i) => {
   const tok = m.outputTokens === null ? '—' : `${Math.round(m.outputTokens / 1000)}k`;
   const eff = m.outputTokens === null ? '—' : (m.headline / (m.outputTokens / 100_000)).toFixed(1);
   console.log(
-    `| ${i + 1} | ${m.label} | **${m.headline.toFixed(2)}** | ${m.tallest.toFixed(2)} | ${curve} | ${gap} | ${tok} | ${eff} |`,
+    `| ${i + 1} | ${m.label}${m.capHits > 0 ? ' †' : ''} | **${m.headline.toFixed(2)}** | ${m.tallest.toFixed(2)} | ${curve} | ${gap} | ${tok} | ${eff} |`,
   );
 });
 const nAttempts = Math.max(...models.map((m) => m.attemptsPerSeed), 0);
 console.log(`\n\\* mean over ${models[0]?.seeds.length ?? '?'} seeds of the best of ${nAttempts} attempts (final standing height).`);
+const flagged = models.filter((m) => m.capHits > 0);
+if (flagged.length > 0) {
+  console.log(
+    `\n† ${flagged.map((m) => `${m.label} (${m.capHits})`).join(', ')}: placements that hit the settle time cap ` +
+      `with the world still moving — recorded heights are snapshots of a non-settled system. Review those replays by hand.`,
+  );
+}
 console.log(`\nwrote ${join(dir, `agg-${group}.json`)}`);

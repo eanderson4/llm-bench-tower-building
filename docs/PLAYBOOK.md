@@ -107,3 +107,6 @@ Notes:
   running the cheap models first to validate the pipeline end to end.
 - `scripts/aggregate.ts` derives the attempt count from the run files and
   compresses long learning curves in the printed table.
+- This generation also ships the #7 fix: the settle cap is raised from 3s to
+  12s of sim time, and placements that still hit it are recorded as
+  `settleCapHit` in the replay and flagged with a † on the leaderboard.

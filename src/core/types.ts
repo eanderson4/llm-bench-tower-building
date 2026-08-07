@@ -70,6 +70,7 @@ export interface PlaceResult {
     tower: TowerStats;
     spawnOverlap: boolean; // true if the sampled spawn interpenetrated something
     spawnPenetration: number; // deepest overlap at spawn (m, 0 if none)
+    settleCapHit: boolean; // true if the world was still moving at the settle time cap
   };
 }
 
@@ -106,6 +107,7 @@ export interface ChallengeDef {
 export interface ReplayPlacement {
   req: PlaceRequest;
   actual: { position: Vec3; velocity: Vec3; sigma: { x: number; v: number } };
+  settleCapHit?: boolean; // true if this placement's settle hit the time cap (absent in pre-v2 replays)
 }
 
 export interface ReplayFile {

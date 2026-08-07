@@ -109,6 +109,7 @@ export class Episode {
     this.placementsLog.push({
       req: { ...req, velocity: req.velocity ?? [0, 0, 0], yawDeg: req.yawDeg ?? 0, orientation },
       actual: { position, velocity, sigma: { x: sigmaX, v: sigmaV } },
+      settleCapHit: !settled,
     });
 
     return {
@@ -120,6 +121,7 @@ export class Episode {
         tower: this.tower,
         spawnOverlap: spawnPenetration > 0.003,
         spawnPenetration,
+        settleCapHit: !settled,
       },
     };
   }

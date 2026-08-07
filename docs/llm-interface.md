@@ -84,7 +84,9 @@ pressing a block gently into place. Dropping from height amplifies velocity
 noise into impact energy; placing close to the support surface is gentler.
 
 After each placement you learn the ACTUAL sampled position and velocity, the
-sigmas that were applied, and the settled outcome — use that feedback.
+sigmas that were applied, and the settled outcome — use that feedback. If the
+world was still moving when the settle time cap was reached, the result is
+reported as toppled with settleCapHit: true — treat that tower as unstable.
 
 If the sampled spawn position overlaps an existing block, the physics resolves
 the overlap — usually violently. There is no validation error for this; the
