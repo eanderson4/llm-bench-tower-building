@@ -27,8 +27,10 @@ const maxShots = Number(arg('max-shots', '1200'));
 mkdirSync(outDir, { recursive: true });
 
 const browser = await puppeteer.launch({
-  executablePath: '/usr/bin/google-chrome',
+  executablePath: process.env.CHROME_PATH
+    ?? (process.platform === 'darwin' ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : '/usr/bin/google-chrome'),
   headless: true,
+  protocolTimeout: 600000,
   args: ['--enable-unsafe-swiftshader', '--hide-scrollbars'],
   defaultViewport: { width, height, deviceScaleFactor: 1 },
 });
