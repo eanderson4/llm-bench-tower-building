@@ -8,8 +8,10 @@ import puppeteer from 'puppeteer-core';
 
 const [url, out, w, h] = process.argv.slice(2);
 const browser = await puppeteer.launch({
-  executablePath: '/usr/bin/google-chrome',
+  executablePath: process.env.CHROME_PATH
+    ?? (process.platform === 'darwin' ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : '/usr/bin/google-chrome'),
   headless: true,
+  protocolTimeout: 600000,
   args: ['--enable-unsafe-swiftshader', '--hide-scrollbars'],
   defaultViewport: { width: Number(w), height: Number(h), deviceScaleFactor: 2 },
 });
