@@ -33,7 +33,9 @@ function arg(name: string, fallback?: string): string {
 const model = arg('model');
 const challengeId = arg('challenge', 'bricks');
 const seeds = parseSeeds(arg('seeds', '3x11'));
-const maxTurns = Number(arg('max-turns', '120'));
+// Turn budget scales with attempt count: 40/attempt reproduces the historical
+// 120-turn default for 3-attempt runs, and keeps 20-attempt runs unthrottled.
+const maxTurns = Number(arg('max-turns', String(seeds.length * 40)));
 const label = arg('label', model.replace(/[^a-z0-9.-]+/gi, '_'));
 const group = arg('group', '');
 const modeArg = arg('mode', 'episodic');

@@ -70,6 +70,7 @@ export interface PlaceResult {
     tower: TowerStats;
     spawnOverlap: boolean; // true if the sampled spawn interpenetrated something
     spawnPenetration: number; // deepest overlap at spawn (m, 0 if none)
+    settleCapHit: boolean; // true if the world was still moving at the settle time cap
   };
 }
 
@@ -106,6 +107,7 @@ export interface ChallengeDef {
 export interface ReplayPlacement {
   req: PlaceRequest;
   actual: { position: Vec3; velocity: Vec3; sigma: { x: number; v: number } };
+  settleCapHit?: boolean; // true if this placement's settle hit the time cap (absent in pre-v2 replays)
 }
 
 export interface ReplayFile {
@@ -116,4 +118,18 @@ export interface ReplayFile {
   inventory: InventoryItem[];
   placements: ReplayPlacement[];
   score: Score;
+}
+
+/**
+ * Protocol metadata for a benchmark generation. aggregate.ts derives it from
+ * the run files and embeds it in agg-<group>.json so downstream tooling
+ * (infographics, board) reads protocol facts from the data instead of
+ * hardcoding them per generation.
+ */
+export interface BenchMeta {
+  group: string; // generation tag, e.g. "main-1" / "main-increased-attempts"
+  challengeId: string;
+  seeds: number[]; // distinct seed values, sorted
+  attemptsPerSeed: number; // attempts in a complete run of this generation
+  mode: string; // harness mode ("episodic" | "session")
 }

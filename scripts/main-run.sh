@@ -1,22 +1,27 @@
 #!/usr/bin/env bash
-# Main headline run: every model on pillarsxl, 5 seeds x 3 episodic attempts
-# per seed (each seed is an independent "3 attempts + notebook" trial), group
-# "main-1". Lane structure mirrors coverage.sh / precision-1.sh: one lane per
-# provider account so runs within a lane are sequential.
+# Main headline run: every model on pillarsxl, 5 seeds x N episodic attempts
+# per seed (each seed is an independent "N attempts + notebook" trial).
+# Lane structure mirrors coverage.sh / precision-1.sh: one lane per provider
+# account so runs within a lane are sequential.
+#
+# Generations (env-overridable):
+#   main-1 (default):          ATTEMPTS=3  GROUP=main-1
+#   main-increased-attempts:   ATTEMPTS=20 GROUP=main-increased-attempts bash scripts/main-run.sh
 set -u
 cd "$(dirname "$0")/.."
 mkdir -p logs
 
 SEEDS=(11 12 13 14 15)
 CHALLENGE=pillarsxl
-GROUP=main-1
+ATTEMPTS=${ATTEMPTS:-3}
+GROUP=${GROUP:-main-1}
 
 run_model() {
   local lane=$1 model=$2
   for seed in "${SEEDS[@]}"; do
-    local log="logs/main-${model}-s${seed}.log"
+    local log="logs/${GROUP}-${model}-s${seed}.log"
     echo "[$lane] START $model seed=$seed $(date +%T)"
-    if npm run bench -- --model "$model" --challenge "$CHALLENGE" --seeds "3x${seed}" --group "$GROUP" >"$log" 2>&1; then
+    if npm run bench -- --model "$model" --challenge "$CHALLENGE" --seeds "${ATTEMPTS}x${seed}" --group "$GROUP" >"$log" 2>&1; then
       echo "[$lane] OK    $model seed=$seed  $(grep -E '^best=' "$log" | tail -1)"
     else
       echo "[$lane] FAIL  $model seed=$seed (log: $log)"
@@ -35,7 +40,7 @@ lane() {
 
 # Naive baseline on every seed (local, fast) for the chart's floor line.
 for seed in "${SEEDS[@]}"; do
-  npm run agent:naive -- --challenge "$CHALLENGE" --seed "$seed" >"logs/main-naive-s${seed}.log" 2>&1 || true
+  npm run agent:naive -- --challenge "$CHALLENGE" --seed "$seed" >"logs/${GROUP}-naive-s${seed}.log" 2>&1 || true
 done
 
 lane anthropic-1 claude-fable-5 &

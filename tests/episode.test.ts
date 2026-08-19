@@ -90,6 +90,14 @@ describe('placement', () => {
     expect(res.settle!.tower.height).toBeLessThan(0.3);
   });
 
+  it('records settleCapHit in the result and replay (false for a normal placement)', async () => {
+    const ep = await freshEpisode(3);
+    const res = ep.place({ blockId: 'b1', position: [0, 0.15, 0], velocity: [0, -0.2, 0], focus: 0.95 });
+    expect(res.ok).toBe(true);
+    expect(res.settle!.settleCapHit).toBe(false);
+    expect(ep.replay().placements[0]!.settleCapHit).toBe(false);
+  });
+
   it('sigma contract shows up in actuals: focus 0.2 is velocity-precise', async () => {
     const ep = await freshEpisode(11);
     const res = ep.place({ blockId: 'b1', position: [0, 0.5, 0], focus: 0.2 });

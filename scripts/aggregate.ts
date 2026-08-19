@@ -13,6 +13,7 @@
  */
 import { readFileSync, readdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import type { BenchMeta } from '../src/core/types';
 
 interface RunFile {
   label: string;
@@ -28,6 +29,7 @@ interface RunFile {
     score: { height: number; peakHeight: number; blocksUsed: number };
     placements: number;
     endReason: string;
+    replayPath: string;
   }[];
 }
 
@@ -52,15 +54,40 @@ interface SeedResult {
   attempts: { attempt: number; height: number; peak: number; blocksUsed: number; endReason: string }[];
   tokens: { output: number; turns: number } | null;
   notes: { entries: number; chars: number };
+  capHits: number; // placements whose settle hit the time cap (world still moving)
+}
+
+/** Count settleCapHit flags across a run's attempt replays (0 if unreadable or pre-v2). */
+function countCapHits(run: RunFile): number {
+  let hits = 0;
+  for (const a of run.attempts) {
+    try {
+      const replay = JSON.parse(readFileSync(a.replayPath, 'utf8')) as { placements?: { settleCapHit?: boolean }[] };
+      hits += (replay.placements ?? []).filter((p) => p.settleCapHit).length;
+    } catch {
+      /* replay missing: cap-hit stats omitted */
+    }
+  }
+  return hits;
 }
 
 const bySeedKey = new Map<string, SeedResult>(); // label\0seed -> latest run wins
 const labels = new Set<string>();
 
+// Generation metadata, derived from the run files (never hardcoded downstream).
+const metaChallenges = new Set<string>();
+const metaSeeds = new Set<number>();
+const metaModes = new Set<string>();
+let metaAttempts = 0;
+
 for (const f of readdirSync(dir).filter((f) => f.startsWith('run-') && f.endsWith('.json'))) {
   const run = JSON.parse(readFileSync(join(dir, f), 'utf8')) as RunFile;
   if (run.group !== group) continue;
   if (challenge && run.challengeId !== challenge) continue;
+  metaChallenges.add(run.challengeId);
+  metaSeeds.add(run.seeds[0]!);
+  metaModes.add(run.mode);
+  metaAttempts = Math.max(metaAttempts, run.attempts.length);
   const seed = run.seeds[0];
   let tokens: SeedResult['tokens'] = null;
   try {
@@ -87,6 +114,7 @@ for (const f of readdirSync(dir).filter((f) => f.startsWith('run-') && f.endsWit
       endReason: a.endReason,
     })),
     tokens,
+    capHits: countCapHits(run),
     notes: {
       entries: (run.notebook ?? []).length,
       chars: (run.notebook ?? []).reduce((a, e) => a + (e.notes?.length ?? 0), 0),
@@ -101,7 +129,8 @@ const models = [...labels]
       .map(([, v]) => v)
       .sort((a, b) => a.seed - b.seed);
     const all = seeds.flatMap((s) => s.attempts);
-    const byAttempt = [1, 2, 3].map((n) => {
+    const attemptNums = [...new Set(all.map((a) => a.attempt))].sort((a, b) => a - b);
+    const byAttempt = attemptNums.map((n) => {
       const xs = all.filter((a) => a.attempt === n).map((a) => a.height);
       return xs.length ? r2(mean(xs)) : null;
     });
@@ -124,30 +153,56 @@ const models = [...labels]
       meanFinal: r2(mean(all.map((a) => a.height))),
       meanPeak: r2(mean(all.map((a) => a.peak))),
       attemptMeans: byAttempt,
+      attemptsPerSeed: attemptNums.length,
       abandoned: all.filter((a) => a.endReason === 'abandoned').length,
       attempts: all.length,
       outputTokens: withTokens.length ? withTokens.reduce((a, s) => a + s.tokens!.output, 0) : null,
       turns: withTokens.length ? withTokens.reduce((a, s) => a + s.tokens!.turns, 0) : null,
       noteEntries: seeds.reduce((a, s) => a + s.notes.entries, 0),
       noteChars: seeds.reduce((a, s) => a + s.notes.chars, 0),
+      capHits: seeds.reduce((a, s) => a + s.capHits, 0),
     };
   })
   .sort((a, b) => b.headline - a.headline);
 
-const out = { group, challenge: challenge || models[0] ? undefined : undefined, generated: 'aggregate.ts', models };
+const meta: BenchMeta = {
+  group,
+  challengeId: challenge || [...metaChallenges][0] || '',
+  seeds: [...metaSeeds].sort((a, b) => a - b),
+  attemptsPerSeed: metaAttempts,
+  mode: [...metaModes][0] ?? '',
+};
+if (metaChallenges.size > 1 || metaModes.size > 1) {
+  console.warn(`warning: mixed challenges/modes in group "${group}" — meta describes the first only`);
+}
+const out = { meta, generated: 'aggregate.ts', models };
 writeFileSync(join(dir, `agg-${group}.json`), JSON.stringify(out, null, 2));
 
 console.log(`# ${group} leaderboard\n`);
-console.log('| # | model | height (m)* | tallest | attempt 1→2→3 (mean) | peak→final gap | output tokens | m / 100k tok |');
+console.log('| # | model | height (m)* | tallest | attempt means (mean height) | peak→final gap | output tokens | m / 100k tok |');
 console.log('|---|-------|------------|---------|----------------------|----------------|---------------|--------------|');
+// Long curves (e.g. 20-attempt generations) are compressed to first 3 … last 2.
+const fmtCurve = (xs: (number | null)[]): string => {
+  const fmt = (x: number | null): string => (x === null ? '—' : x.toFixed(2));
+  if (xs.length <= 6) return xs.map(fmt).join(' → ');
+  return [...xs.slice(0, 3).map(fmt), '…', ...xs.slice(-2).map(fmt)].join(' → ');
+};
 models.forEach((m, i) => {
-  const curve = m.attemptMeans.map((x) => (x === null ? '—' : x.toFixed(2))).join(' → ');
+  const curve = fmtCurve(m.attemptMeans);
   const gap = (m.meanPeak - m.meanFinal).toFixed(2);
   const tok = m.outputTokens === null ? '—' : `${Math.round(m.outputTokens / 1000)}k`;
   const eff = m.outputTokens === null ? '—' : (m.headline / (m.outputTokens / 100_000)).toFixed(1);
   console.log(
-    `| ${i + 1} | ${m.label} | **${m.headline.toFixed(2)}** | ${m.tallest.toFixed(2)} | ${curve} | ${gap} | ${tok} | ${eff} |`,
+    `| ${i + 1} | ${m.label}${m.capHits > 0 ? ' †' : ''} | **${m.headline.toFixed(2)}** | ${m.tallest.toFixed(2)} | ${curve} | ${gap} | ${tok} | ${eff} |`,
   );
 });
-console.log(`\n\\* mean over ${models[0]?.seeds.length ?? '?'} seeds of the best of 3 attempts (final standing height).`);
+const nAttempts = meta.attemptsPerSeed || Math.max(...models.map((m) => m.attemptsPerSeed), 0);
+console.log(`\n\\* mean over ${models[0]?.seeds.length ?? '?'} seeds of the best of ${nAttempts} attempts (final standing height).`);
+const flagged = models.filter((m) => m.capHits > 0);
+if (flagged.length > 0) {
+  console.log(
+    `\n† ${flagged.map((m) => `${m.label} (${m.capHits})`).join(', ')}: placements that hit the settle time cap ` +
+      `with the world still moving — recorded heights are snapshots of a non-settled system. Review those replays by hand.`,
+  );
+}
 console.log(`\nwrote ${join(dir, `agg-${group}.json`)}`);

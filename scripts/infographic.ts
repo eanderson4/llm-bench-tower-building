@@ -8,6 +8,7 @@
  */
 import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import type { BenchMeta } from '../src/core/types';
 
 function arg(name: string, dflt?: string): string {
   const i = process.argv.indexOf(`--${name}`);
@@ -38,7 +39,11 @@ interface AggModel {
   meanPeak: number;
   attemptMeans: (number | null)[];
 }
-const agg = JSON.parse(readFileSync(`replays/agg-${group}.json`, 'utf8')) as { models: AggModel[] };
+const agg = JSON.parse(readFileSync(`replays/agg-${group}.json`, 'utf8')) as { meta?: BenchMeta; models: AggModel[] };
+// Protocol facts come from the agg file's BenchMeta; fall back to the data
+// shape for pre-meta agg files (e.g. a stale agg-main-1.json).
+const nAttempts = agg.meta?.attemptsPerSeed ?? Math.max(3, ...agg.models.map((m) => m.attemptMeans.length));
+const nSeeds = agg.meta?.seeds.length ?? Math.max(5, ...agg.models.map((m) => m.seeds.length));
 
 const NAME: Record<string, string> = {
   'claude-opus-5': 'Claude Opus 5',
@@ -161,12 +166,12 @@ writeFileSync(
     `<h1>Which LLM builds the tallest tower?</h1>
      <div class="sub">30 blocks, physics simulated, placements land with position/velocity noise —
      precise position or precise velocity, never both. Score is what's <b>still standing</b> at the end.
-     Bar = mean over 5 seeds of the best of 3 attempts; dots = the 5 seeds; whisker = ±1 std dev.</div>
+     Bar = mean over ${nSeeds} seeds of the best of ${nAttempts} attempts; dots = the ${nSeeds} seeds; whisker = ±1 std dev.</div>
      <div class="main"><div class="chartcol"><div class="chart">
        <div class="grid">${gridLines}</div><div class="rows">${rows1}</div></div>
      <div class="note"><b>Claude Opus 5</b> won by ending an attempt early to protect an
      11.07m tower — it used only 15 of its 30 blocks.</div></div>${towerCol}</div>
-     <div class="footer"><div class="repo">${REPO}</div><div class="lic">benchmark main-1 · MIT · replays + code in repo</div></div>`,
+     <div class="footer"><div class="repo">${REPO}</div><div class="lic">benchmark ${group} · MIT · replays + code in repo</div></div>`,
   ),
 );
 
@@ -197,17 +202,17 @@ writeFileSync(
      <div class="note"><b>GPT-5.6 Sol</b> reached 7.9m in 4 of 5 seeds — and toppled its own tower late almost
      every time (mean 3.5m lost). <b>Claude Opus 5</b> banked instead: it ended attempts early to keep what it had.</div>
      </div></div>
-     <div class="footer"><div class="repo">${REPO}</div><div class="lic">benchmark main-1 · MIT · replays + code in repo</div></div>`,
+     <div class="footer"><div class="repo">${REPO}</div><div class="lic">benchmark ${group} · MIT · replays + code in repo</div></div>`,
   ),
 );
 
 // ---- #3 learning: small multiples ---------------------------------------
-// One panel per model: thick mean line over attempts 1..3, faint per-seed
+// One panel per model: thick mean line over attempts 1..N, faint per-seed
 // lines behind it, shared y scale for comparability.
 const PW = 500;
 const PH = 152;
 const PPAD = { l: 44, r: 16, t: 12, b: 8 };
-const ppx = (a: number): number => PPAD.l + ((a - 1) / 2) * (PW - PPAD.l - PPAD.r);
+const ppx = (a: number): number => PPAD.l + ((a - 1) / Math.max(1, nAttempts - 1)) * (PW - PPAD.l - PPAD.r);
 const ppy = (h: number): number => PH - PPAD.b - (h / 12.5) * (PH - PPAD.t - PPAD.b);
 
 const panels = agg.models
@@ -234,7 +239,9 @@ const panels = agg.models
           <text x="${PPAD.l - 8}" y="${ppy(v) + 5}" fill="#4e5760" font-size="13" text-anchor="end">${v}m</text>`,
       )
       .join('');
-    const d = (m.attemptMeans[2] ?? 0) - (m.attemptMeans[0] ?? 0);
+    const firstMean = m.attemptMeans.find((x) => x !== null) ?? 0;
+    const lastMean = [...m.attemptMeans].reverse().find((x) => x !== null) ?? 0;
+    const d = lastMean - firstMean;
     const dTxt = `${d >= 0 ? '+' : '\u2212'}${Math.abs(d).toFixed(1)}m`;
     const dCol = d >= 0.3 ? '#7ec97e' : d <= -0.3 ? '#e06c6c' : '#8a939d';
     return `<div class="panel">
@@ -245,6 +252,11 @@ const panels = agg.models
     </div>`;
   })
   .join('');
+
+// Axis labels: every attempt number when there are few; first/mid/last when many.
+const axisNums =
+  nAttempts <= 6 ? Array.from({ length: nAttempts }, (_, i) => i + 1) : [1, Math.ceil(nAttempts / 2), nAttempts];
+const axisDiv = `<div>${axisNums.map((n) => `<span>attempt ${n}</span>`).join('')}</div>`;
 
 writeFileSync(
   join(outdir, 'learning.html'),
@@ -260,15 +272,15 @@ writeFileSync(
       .paxis div { display: flex; justify-content: space-between; padding-left: 44px; }
     </style>
      <h1>Do they learn between attempts?</h1>
-     <div class="sub">3 attempts per seed; between attempts the conversation is wiped — all that survives
+     <div class="sub">${nAttempts} attempts per seed; between attempts the conversation is wiped — all that survives
      is a notebook the model writes to itself. Thick line = mean final height per attempt;
-     thin lines = each of the 5 seeds. Change shown is attempt 1 &rarr; 3.</div>
+     thin lines = each of the ${nSeeds} seeds. Change shown is attempt 1 &rarr; ${nAttempts}.</div>
      <div class="panels">${panels}</div>
-     <div class="paxis"><div><span>attempt 1</span><span>attempt 2</span><span>attempt 3</span></div><div><span>attempt 1</span><span>attempt 2</span><span>attempt 3</span></div></div>
+     <div class="paxis">${axisDiv}${axisDiv}</div>
      <div class="note"><b>Claude Opus 5</b> is the only model that improved on every attempt — its notes compound.
      <b>Kimi K3</b> wrote a wrong lesson into its notebook on attempt 1 ("never stand pillars upright") and plateaued.
      <b>Claude Sonnet 5</b> got worse every attempt: its peak was raw skill, not learning.</div>
-     <div class="footer"><div class="repo">${REPO}</div><div class="lic">main-1 &middot; MIT</div></div>`,
+     <div class="footer"><div class="repo">${REPO}</div><div class="lic">${group} &middot; MIT</div></div>`,
   ),
 );
 // ---- #4 comparison table: TowerBench vs established benchmarks ----------
@@ -327,7 +339,7 @@ writeFileSync(
      If tower building were just coding or abstract reasoning in disguise, the columns would agree.
      They don't.</div>
      <table>
-       <tr><th></th><th>model</th><th class="col1">TowerBench main-1</th>
+       <tr><th></th><th>model</th><th class="col1">TowerBench ${group}</th>
          <th>AA Intelligence Index</th><th>SWE-bench Verified %</th><th>ARC-AGI-2 %</th></tr>
        ${tRows}
      </table>
@@ -337,7 +349,7 @@ writeFileSync(
      <div class="note"><b>GPT-5.6 Sol</b>: #1 column on SWE-bench, #6 tower. <b>Kimi K3</b>: 93 on SWE-bench,
      8th tower. Meanwhile <b>Claude Sonnet 5</b> out-builds models that out-score it everywhere else.
      Building under uncertainty is its own skill.</div>
-     <div class="footer"><div class="repo">${REPO}</div><div class="lic">main-1 &middot; MIT</div></div>`,
+     <div class="footer"><div class="repo">${REPO}</div><div class="lic">${group} &middot; MIT</div></div>`,
   ),
 );
 

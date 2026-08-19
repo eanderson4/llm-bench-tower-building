@@ -74,7 +74,7 @@ export class Sim {
   }
 
   /** Step until every dynamic body is slow for SETTLE_STREAK steps, or the cap. */
-  settle(maxSeconds = 3): SettleResult {
+  settle(maxSeconds = 12): SettleResult {
     const maxSteps = Math.round(maxSeconds / DT);
     let streak = 0;
     for (let i = 1; i <= maxSteps; i++) {
